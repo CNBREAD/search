@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的专属导航搜索页</title>
+    <style>
+        * {margin: 0; padding: 0; box-sizing: border-box; font-family: 微软雅黑, 宋体, sans-serif;}
+        body {background: url('https://picsum.photos/id/10/1920/1080') no-repeat center center fixed; background-size: cover; min-height: 100vh; padding: 15px; position: relative; color: #333;}
+        body::before {content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3); z-index: -1;}
+        .container {width: 100%; max-width: 700px; margin: 0 auto; padding: 20px 0;}
+        /* 用户栏 */
+        .user-bar {text-align: right; margin-bottom: 15px; font-size: 13px; color: #fff;}
+        .user-btn {padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 8px; color: #333; background: rgba(255,255,255,0.9);}
+        .user-info {margin-right: 8px; text-shadow: 0 1px 2px rgba(0,0,0,0.5);}
+        /* 弹窗 */
+        .modal-mask {position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 999;}
+        .modal-box {background: rgba(255,255,255,0.95); padding: 25px 20px; border-radius: 10px; width: 90%; max-width: 350px;}
+        .modal-title {text-align: center; margin-bottom: 20px; font-size: 20px; color: #222;}
+        .modal-input {width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none;}
+        .modal-input:focus {border-color: #4d88ff;}
+        .modal-btn {width: 100%; padding: 10px; background: #4d88ff; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 8px;}
+        .modal-btn:hover {background: #3377ff;}
+        .modal-tip {font-size: 12px; color: #ff4444; text-align: center; margin-top: 10px; display: none;}
+        .switch-modal {text-align: center; font-size: 12px; margin-top: 15px; color: #666;}
+        .switch-modal span {color: #4d88ff; cursor: pointer;}
+        /* 搜索区 */
+        .search-box {text-align: center; padding: 20px 18px; background: rgba(255, 255, 255, 0.9); border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); margin-bottom: 25px;}
+        .search-box h2 {color: #222; margin-bottom: 15px; font-size: 24px; transition: color 0.3s ease;}
+        .engine-group {margin-bottom: 12px; color: #666; font-size: 13px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;}
+        .search-input {display: flex; gap: 8px; margin-top: 10px;}
+        #search-text {flex: 1; padding: 11px 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; background: rgba(255, 255, 255, 0.95); min-width: 0;}
+        #search-text:focus {border-color: #4d88ff;}
+        #search-btn {padding: 11px 16px; background-color: #4d88ff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; white-space: nowrap;}
+        #search-btn:hover {background-color: #3377ff;}
+        .tips {margin-top: 10px; color: #666; font-size: 12px; transition: color 0.3s ease;}
+        #night-mode {margin-top: 12px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 4px; background: #fff; color: #333; cursor: pointer; font-size: 12px;}
+        /* 历史记录 */
+        .history-area {margin-top: 15px; text-align: left; padding: 0 8px;}
+        .history-area p {color: #666; font-size: 12px; margin-bottom: 6px; transition: color 0.3s ease;}
+        #history-list {display: flex; flex-wrap: wrap; gap: 6px; min-height: 20px;}
+        #clear-history {margin-top: 8px; padding: 5px 8px; border: none; background: #ff6666; color: #fff; border-radius: 4px; cursor: pointer; font-size: 11px; display: none;}
+        /* 双列导航（一行2个，无图标） */
+        .nav-box {display: grid; grid-template-columns: 1fr 1fr; gap: 12px;}
+        .nav-card {display: flex; align-items: center; justify-content: center; padding: 18px 12px; background: rgba(255, 255, 255, 0.9); border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); text-decoration: none; transition: all 0.2s ease; font-size: 15px; font-weight: 500; color: #222;}
+        .nav-card:hover {transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); background: rgba(245, 245, 245, 0.95);}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部用户栏 -->
+        <div class="user-bar">
+            <span class="user-info" id="user-info">未登录</span>
+            <button class="user-btn" id="login-btn">登录</button>
+            <button class="user-btn" id="reg-btn">注册</button>
+            <button class="user-btn" id="logout-btn" style="display: none;">退出登录</button>
+        </div>
+
+        <!-- 搜索区域 -->
+        <div class="search-box">
+            <h2>全网搜索+专属导航</h2>
+            <div class="engine-group">
+                <label>选择引擎：</label>
+                <input type="radio" name="engine" value="baidu" checked id="baidu">
+                <label for="baidu">百度</label>
+                <input type="radio" name="engine" value="sogou" id="sogou">
+                <label for="sogou">搜狗</label>
+                <input type="radio" name="engine" value="bing" id="bing">
+                <label for="bing">必应</label>
+            </div>
+            <div class="search-input">
+                <input type="text" id="search-text" placeholder="输入内容搜索...">
+                <button id="search-btn">搜索</button>
+            </div>
+            <p class="tips">点击搜索或按回车，跳转对应结果</p>
+            <button id="night-mode">夜间模式</button>
+            <div class="history-area">
+                <p>搜索历史：</p>
+                <div id="history-list"></div>
+                <button id="clear-history">清空历史</button>
+            </div>
+        </div>
+
+        <!-- 双列导航（一行2个，无图标，新增大量站点） -->
+        <div class="nav-box">
+            <!-- 国内常用 -->
+            <a href="https://www.baidu.com" class="nav-card" target="_blank">百度</a>
+            <a href="https://www.bilibili.com" class="nav-card" target="_blank">哔哩哔哩</a>
+            <a href="https://www.zhihu.com" class="nav-card" target="_blank">知乎</a>
+            <a href="https://www.douban.com" class="nav-card" target="_blank">豆瓣</a>
+            <a href="https://www.taobao.com" class="nav-card" target="_blank">淘宝</a>
+            <a href="https://www.jd.com" class="nav-card" target="_blank">京东</a>
+            <a href="https://weibo.com" class="nav-card" target="_blank">微博</a>
+            <a href="https://www.163.com" class="nav-card" target="_blank">网易</a>
+            <!-- 学习类 -->
+            <a href="https://www.xuetangx.com" class="nav-card" target="_blank">学堂在线</a>
+            <a href="https://dict.youdao.com" class="nav-card" target="_blank">有道词典</a>
+            <a href="https://www.icourse163.org" class="nav-card" target="_blank">中国大学MOOC</a>
+            <a href="https://www.putclub.com" class="nav-card" target="_blank">普特英语听力</a>
+            <!-- 小众实用 -->
+            <a href="https://sspai.com" class="nav-card" target="_blank">少数派</a>
+            <a href="https://www.guokr.com" class="nav-card" target="_blank">果壳网</a>
+            <a href="https://www.xiaohongshu.com" class="nav-card" target="_blank">小红书</a>
+            <a href="https://www.douyu.com" class="nav-card" target="_blank">斗鱼直播</a>
+            <!-- 国外常用 -->
+            <a href="https://www.youtube.com" class="nav-card" target="_blank">YouTube</a>
+            <a href="https://www.wikipedia.org" class="nav-card" target="_blank">维基百科</a>
+            <a href="https://www.reddit.com" class="nav-card" target="_blank">Reddit</a>
+            <a href="https://www.quora.com" class="nav-card" target="_blank">Quora</a>
+            <!-- 国外小众 -->
+            <a href="https://www.coursera.org" class="nav-card" target="_blank">Coursera</a>
+            <a href="https://pixabay.com" class="nav-card" target="_blank">Pixabay 免费图库</a>
+            <a href="https://www.archdaily.com" class="nav-card" target="_blank">ArchDaily</a>
+            <a href="https://www.theverge.com" class="nav-card" target="_blank">The Verge</a>
+        </div>
+    </div>
+
+    <!-- 登录/注册弹窗 -->
+    <div class="modal-mask" id="login-modal">
+        <div class="modal-box">
+            <h3 class="modal-title">账号登录</h3>
+            <input type="text" class="modal-input" id="login-username" placeholder="请输入用户名">
+            <input type="password" class="modal-input" id="login-pwd" placeholder="请输入密码">
+            <button class="modal-btn" id="do-login">登录</button>
+            <p class="modal-tip" id="login-tip">提示信息</p>
+            <p class="switch-modal">还没账号？<span id="to-reg">去注册</span></p>
+        </div>
+    </div>
+    <div class="modal-mask" id="reg-modal">
+        <div class="modal-box">
+            <h3 class="modal-title">账号注册</h3>
+            <input type="text" class="modal-input" id="reg-username" placeholder="请设置用户名">
+            <input type="password" class="modal-input" id="reg-pwd" placeholder="请设置6-12位数字字母密码">
+            <input type="email" class="modal-input" id="reg-email" placeholder="请输入邮箱">
+            <button class="modal-btn" id="do-reg">注册</button>
+            <p class="modal-tip" id="reg-tip">提示信息</p>
+            <p class="switch-modal">已有账号？<span id="to-login">去登录</span></p>
+        </div>
+    </div>
+
+    <script>
+        // 搜索功能
+        const searchText = document.getElementById('search-text');
+        const searchBtn = document.getElementById('search-btn');
+        function getSearchUrl(content) {
+          const engine = document.querySelector('input[name="engine"]:checked').value;
+          switch(engine) {
+            case 'sogou': return 'https://www.sogou.com/web?query=' + encodeURIComponent(content);
+            case 'bing': return 'https://cn.bing.com/search?q=' + encodeURIComponent(content);
+            default: return 'https://www.baidu.com/s?wd=' + encodeURIComponent(content);
+          }
+        }
+        function goSearch() {
+            const content = searchText.value.trim();
+            if (content) {
+                const url = getSearchUrl(content);
+                window.open(url, '_blank');
+                saveSearchHistory(content);
+            }
+        }
+        searchBtn.onclick = goSearch;
+        searchText.onkeydown = e => e.key === 'Enter' && (goSearch(), setTimeout(() => searchText.value = '', 300));
+
+        // 用户系统（本地存储）
+        const loginModal = document.getElementById('login-modal');
+        const regModal = document.getElementById('reg-modal');
+        const userInfo = document.getElementById('user-info');
+        const loginBtn = document.getElementById('login-btn');
+        const regBtn = document.getElementById('reg-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        // 切换登录/注册
+        document.getElementById('to-reg').onclick = () => (loginModal.style.display = 'none', regModal.style.display = 'flex');
+        document.getElementById('to-login').onclick = () => (regModal.style.display = 'none', loginModal.style.display = 'flex');
+        loginBtn.onclick = () => loginModal.style.display = 'flex';
+        regBtn.onclick = () => regModal.style.display = 'flex';
+        // 点击空白关弹窗
+        [loginModal, regModal].forEach(modal => modal.onclick = e => e.target === modal && (modal.style.display = 'none'));
+
+        // 注册（密码6-12位数字+字母）
+        document.getElementById('do-reg').onclick = () => {
+            const username = document.getElementById('reg-username').value.trim();
+            const pwd = document.getElementById('reg-pwd').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const regTip = document.getElementById('reg-tip');
+            regTip.style.display = 'block';
+            const pwdReg = /^(?=.*[0-9])(?=.*[a-zA-Z])[0-9a-zA-Z]{6,12}$/;
+            if(!username) {regTip.textContent = '用户名不能为空'; return;}
+            if(!pwdReg.test(pwd)) {regTip.textContent = '密码需6-12位数字+字母组合'; return;}
+            if(!email.includes('@')) {regTip.textContent = '邮箱格式不正确'; return;}
+            const users = JSON.parse(localStorage.getItem('userList')) || [];
+            if(users.some(u => u.username === username)) {regTip.textContent = '用户名已存在'; return;}
+            users.push({username, pwd, email});
+            localStorage.setItem('userList', JSON.stringify(users));
+            regTip.style.color = '#33cc66';
+            regTip.textContent = '注册成功！请登录';
+            setTimeout(() => {regModal.style.display = 'none'; loginModal.style.display = 'flex'; regTip.style.color = '#ff4444';}, 1500);
+        }
+
+        // 登录
+        document.getElementById('do-login').onclick = () => {
+            const username = document.getElementById('login-username').value.trim();
+            const pwd = document.getElementById('login-pwd').value.trim();
+            const loginTip = document.getElementById('login-tip');
+            loginTip.style.display = 'block';
+            if(!username || !pwd) {loginTip.textContent = '用户名和密码不能为空'; return;}
+            const users = JSON.parse(localStorage.getItem('userList')) || [];
+            const user = users.find(u => u.username === username && u.pwd === pwd);
+            if(!user) {loginTip.textContent = '用户名或密码错误'; return;}
+            localStorage.setItem('loginUser', JSON.stringify(user));
+            loginTip.style.color = '#33cc66';
+            loginTip.textContent = '登录成功！';
+            setTimeout(() => {loginModal.style.display = 'none'; updateUserStatus(); loginTip.style.color = '#ff4444';}, 1000);
+        }
+
+        // 退出登录
+        logoutBtn.onclick = () => (localStorage.removeItem('loginUser'), updateUserStatus());
+
+        // 更新登录状态
+        function updateUserStatus() {
+            const loginUser = JSON.parse(localStorage.getItem('loginUser'));
+            if(loginUser) {
+                userInfo.textContent = `欢迎：${loginUser.username}`;
+                loginBtn.style.display = regBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+            } else {
+                userInfo.textContent = '未登录';
+                loginBtn.style.display = regBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+            }
+        }
+
+        // 夜间模式
+        const nightBtn = document.getElementById('night-mode');
+        const body = document.body;
+        const pageTitle = document.querySelector('.search-box h2');
+        const pageTips = document.querySelector('.tips');
+        const historyTitle = document.querySelector('.history-area p');
+        const searchBox = document.querySelector('.search-box');
+        const navCards = document.querySelectorAll('.nav-card');
+        const modalBoxes = document.querySelectorAll('.modal-box');
+        const modalTitles = document.querySelectorAll('.modal-title');
+        const modalInputs = document.querySelectorAll('.modal-input');
+        
+        if(localStorage.getItem('nightMode') === 'on') {
+          body.style.backgroundColor = 'rgba(26,26,26,0.8)';
+          pageTitle.style.color = '#f5f5f5';
+          pageTips.style.color = '#ccc';
+          historyTitle.style.color = '#ccc';
+          searchBox.style.background = 'rgba(30,30,30,0.9)';
+          navCards.forEach(card => card.style.background = 'rgba(30,30,30,0.9)');
+          navCards.forEach(card => card.style.color = '#f5f5f5');
+          modalBoxes.forEach(box => box.style.background = 'rgba(30,30,30,0.95)');
+          modalTitles.forEach(t => t.style.color = '#f5f5f5');
+          modalInputs.forEach(i => {i.style.background = '#444'; i.style.color = '#fff'; i.style.borderColor = '#555';});
+          nightBtn.textContent = '日间模式';
+          renderHistory();
+        }
+        nightBtn.onclick = function() {
+            const isNight = localStorage.getItem('nightMode') === 'on';
+            body.style.backgroundColor = isNight ? 'transparent' : 'rgba(26,26,26,0.8)';
+            pageTitle.style.color = isNight ? '#222' : '#f5f5f5';
+            pageTips.style.color = isNight ? '#666' : '#ccc';
+            historyTitle.style.color = isNight ? '#666' : '#ccc';
+            searchBox.style.background = isNight ? 'rgba(255,255,255,0.9)' : 'rgba(30,30,30,0.9)';
+            navCards.forEach(card => card.style.background = isNight ? 'rgba(255,255,255,0.9)' : 'rgba(30,30,30,0.9)');
+            navCards.forEach(card => card.style.color = isNight ? '#222' : '#f5f5f5');
+            modalBoxes.forEach(box => box.style.background = isNight ? 'rgba(255,255,255,0.95)' : 'rgba(30,30,30,0.95)');
+            modalTitles.forEach(t => t.style.color = isNight ? '#222' : '#f5f5f5');
+            modalInputs.forEach(i => {
+                if(isNight){i.style.background = '#fff';i.style.color = '#333';i.style.borderColor = '#ddd';}
+                else{i.style.background = '#444';i.style.color = '#fff';i.style.borderColor = '#555';}
+            });
+            this.textContent = isNight ? '夜间模式' : '日间模式';
+            localStorage.setItem('nightMode', isNight ? 'off' : 'on');
+            renderHistory();
+        }
+
+        // 搜索历史
+        const historyList = document.getElementById('history-list');
+        const clearBtn = document.getElementById('clear-history');
+        function saveSearchHistory(text) {
+          let history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+          !history.includes(text) && (history.unshift(text), history.length > 10 && history.pop(), localStorage.setItem('searchHistory', JSON.stringify(history)));
+          renderHistory();
+        }
+        function renderHistory() {
+          let history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+          historyList.innerHTML = '';
+          if(history.length > 0) {
+            clearBtn.style.display = 'inline-block';
+            const isNight = localStorage.getItem('nightMode') === 'on';
+            history.forEach(item => {
+              const tag = document.createElement('span');
+              tag.style.padding = '3px 6px';
+              tag.style.borderRadius = '4px';
+              tag.style.cursor = 'pointer';
+              tag.style.fontSize = '11px';
+              tag.textContent = item;
+              tag.style.background = isNight ? '#555' : '#eee';
+              tag.style.color = isNight ? '#f5f5f5' : '#333';
+              tag.onclick = () => (searchText.value = item, goSearch());
+              historyList.appendChild(tag);
+            });
+          } else {clearBtn.style.display = 'none';}
+        }
+        clearBtn.onclick = () => (localStorage.removeItem('searchHistory'), renderHistory());
+        
+        // 页面初始化
+        window.onload = () => (updateUserStatus(), renderHistory());
+    </script>
+</body>
+</html>
